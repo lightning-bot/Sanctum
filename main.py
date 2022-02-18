@@ -7,7 +7,9 @@ import config
 from routers import guilds
 
 
-app = FastAPI(version="1.0.0+v4")  # API version + bot version
+app = FastAPI(title="Sanctum",
+              version="1.0.0+v4",  # API version + bot version
+              redoc_url="/docs", docs_url=None)
 app.include_router(guilds.router)
 
 
