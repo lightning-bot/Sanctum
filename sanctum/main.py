@@ -1,10 +1,11 @@
 import asyncpg
 import orjson
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
 import config
-from routers import setup_routers
+from .errors import NotFound
+from .routers import setup_routers
 
 app = FastAPI(title="Sanctum",
               version="1.0.0+v4",  # API version + bot version
@@ -12,11 +13,20 @@ app = FastAPI(title="Sanctum",
 setup_routers(app)
 
 
+@app.exception_handler(NotFound)
+async def not_found_eexception_handler(request: Request, exc: NotFound):
+    return {"message": f"{exc.thing} was not found!" if exc.thing else exc.message}
+
+
+def encode_json(data):
+    return orjson.dumps(data).decode('utf-8')
+
+
 @app.on_event("startup")
 async def on_startup():
     async def init(connection: asyncpg.Connection):
-        await connection.set_type_codec('json', encoder=orjson.dumps, decoder=orjson.loads, schema='pg_catalog')
-        await connection.set_type_codec('jsonb', encoder=orjson.dumps, decoder=orjson.loads, schema='pg_catalog')
+        await connection.set_type_codec('json', encoder=encode_json, decoder=orjson.loads, schema='pg_catalog')
+        await connection.set_type_codec('jsonb', encoder=encode_json, decoder=orjson.loads, schema='pg_catalog')
     app.pool = await asyncpg.create_pool(config.POSTGRESQL_PSN, init=init)
 
 

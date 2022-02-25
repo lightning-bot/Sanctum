@@ -5,11 +5,14 @@ from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 
 
-class Guild(BaseModel):
-    id: int
+class GuildPayload(BaseModel):
     name: str
     owner_id: int
     left_at: Optional[datetime]
+
+
+class Guild(GuildPayload):
+    id: int
 
 
 router = APIRouter(prefix="/guilds")
@@ -28,8 +31,8 @@ async def get_guild(guild_id: int, request: Request):
     return dict(record)
 
 
-@router.put("/{guild_id}/create")
-async def create_guild(guild_id: int, guild: Guild, request: Request):
+@router.put("/{guild_id}")
+async def create_guild(guild_id: int, guild: GuildPayload, request: Request):
     """Creates or updates a guild"""
     query = """INSERT INTO guilds (id, name, owner_id)
                VALUES ($1, $2, $3)
@@ -43,4 +46,3 @@ async def create_guild(guild_id: int, guild: Guild, request: Request):
 async def mark_guild_leave(guild_id: int, request: Request):
     query = "UPDATE guilds SET left_at=(NOW() AT TIME ZONE 'utc') WHERE id=$1;"
     await request.app.pool.execute(query, guild_id)
-

@@ -1,8 +1,10 @@
-from datetime import datetime, tzinfo
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, validator
+
+from ..errors import NotFound
 
 router = APIRouter()
 
@@ -24,6 +26,10 @@ class Timer(BaseModel):
     created: datetime
     expiry: Optional[datetime]
     extra: Optional[dict]
+
+    @validator('created', 'expiry', pre=True)
+    def dt_validator(cls, value):
+        return value.replace(tzinfo=timezone.utc)
 
     @classmethod
     def from_record(cls, record):
@@ -90,10 +96,10 @@ async def get_user_reminders(user_id: int, request: Request, limit: int = 10):
                LIMIT $2;
             """
 
-    records = await request.app.pool.fetch(query, user_id, limit)
+    records = await request.app.pool.fetch(query, str(user_id), limit)
 
     if not records:
-        raise HTTPException(404, f"{user_id}'s reminders were not found!")
+        raise NotFound(message=f"{user_id}'s reminders were not found!")
 
     return list(map(Timer.from_record, records))
 
