@@ -1,14 +1,22 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Request
+from pydantic import BaseModel, validator
+
+from ..errors import NotFound
 
 
 class GuildPayload(BaseModel):
     name: str
     owner_id: int
     left_at: Optional[datetime]
+
+    @validator('left_at', pre=True)
+    def dt_validator(cls, value):
+        if not value:
+            return value
+        return value.replace(tzinfo=timezone.utc)
 
 
 class Guild(GuildPayload):
@@ -18,7 +26,7 @@ class Guild(GuildPayload):
 router = APIRouter(prefix="/guilds")
 
 
-@router.get("/{guild_id}")
+@router.get("/{guild_id}", response_model=Guild)
 async def get_guild(guild_id: int, request: Request):
     """Gets a guild"""
     query = """SELECT * FROM guilds
@@ -26,7 +34,7 @@ async def get_guild(guild_id: int, request: Request):
             """
     record = await request.app.pool.fetchrow(query, guild_id)
     if not record:
-        raise HTTPException(404, "Guild not found")
+        raise NotFound("Guild")
 
     return dict(record)
 
