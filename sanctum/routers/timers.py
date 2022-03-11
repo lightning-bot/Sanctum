@@ -119,3 +119,18 @@ async def delete_user_reminder(user_id: int, reminder_id: int, request: Request)
         raise NotFound(message=f"Unable to find a reminder belonging to {user_id} with ID {reminder_id}")
 
     return {}
+
+
+@router.delete("/users/{user_id}/reminders")
+async def bulk_delete_user_reminders(user_id: int, request: Request):
+    """
+    Bulk deletes all user reminders
+    """
+    query = """DELETE FROM timers
+               WHERE event = 'reminder'
+               AND extra ->> 'author' = $1
+               RETURNING id;
+            """
+    records = await request.app.pool.fetch(query, str(user_id))
+    ids = [r['id'] for r in records]
+    return {"ids": ids}
