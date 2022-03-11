@@ -47,8 +47,9 @@ class PatchableInfraction(BaseModel):
 
 
 def serialize_infraction(record):
+    record = dict(record)
     record['created_at'] = record['created_at'].isoformat()
-    if "expiry" in record:
+    if record.get("expiry", None):
         record['expiry'] = record['expiry'].isoformat()
     return record
 
