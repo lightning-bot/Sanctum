@@ -8,5 +8,5 @@ Build Docker Image:
     - docker:20.10.16-dind
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $CI_REGISTRY/lightning-bot/Sanctum/Sanctum:latest .
-    - docker push $CI_REGISTRY/lightning-bot/Sanctum/Sanctum:latest
+    - docker build -t $CI_REGISTRY/lightning-bot/sanctum/sanctum:latest .
+    - docker push $CI_REGISTRY/lightning-bot/sanctum/sanctum:latest
