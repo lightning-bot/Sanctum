@@ -3,7 +3,7 @@ import orjson
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, ORJSONResponse
 
-import config
+from .config import Config
 from .errors import NotFound
 from .routers import setup_routers
 
@@ -24,10 +24,12 @@ def encode_json(data):
 
 @app.on_event("startup")
 async def on_startup():
+    config = Config()
+
     async def init(connection: asyncpg.Connection):
         await connection.set_type_codec('json', encoder=encode_json, decoder=orjson.loads, schema='pg_catalog')
         await connection.set_type_codec('jsonb', encoder=encode_json, decoder=orjson.loads, schema='pg_catalog')
-    app.pool = await asyncpg.create_pool(config.POSTGRESQL_PSN, init=init)
+    app.pool = await asyncpg.create_pool(config.postgres, init=init)
 
 
 @app.on_event("shutdown")
