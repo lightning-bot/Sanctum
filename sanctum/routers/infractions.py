@@ -94,12 +94,12 @@ async def create_guild_infraction(guild_id: int, infraction: Infraction, request
 
 
 @router.delete("/{guild_id}/infractions/{inf_id}")
-async def delete_guild_infraction(guild_id: int, infraction_id: int, request: Request):
+async def delete_guild_infraction(guild_id: int, inf_id: int, request: Request):
     """Deletes a guild infraction"""
     query = """DELETE FROM infractions WHERE guild_id=$1 AND id=$2;"""
-    r = await request.app.pool.execute(query, guild_id, infraction_id)
+    r = await request.app.pool.execute(query, guild_id, inf_id)
     if r == "DELETE 0":
-        raise NotFound(f"Infraction with ID {infraction_id}")
+        raise NotFound(f"Infraction with ID {inf_id}")
 
 
 @router.delete("/{guild_id}/users/{user_id}/infractions")
