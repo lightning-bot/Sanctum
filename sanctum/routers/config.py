@@ -33,7 +33,7 @@ async def get_guild_prefixes(guild_id: int, request: Request):
 
 
 @router.put("/{guild_id}/prefixes")
-async def put_guild_prefixes(guild_id: int, prefixes: Optional[list], request: Request):
+async def put_guild_prefixes(guild_id: int, request: Request, prefixes: Optional[list] = None):
     """Upserts new prefixes"""
     if not prefixes:
         query = "UPDATE guild_config SET prefixes = NULL WHERE guild_id=$1;"
