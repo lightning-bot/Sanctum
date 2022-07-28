@@ -14,3 +14,9 @@ class Config:
 
         if not self.postgres:
             raise Exception("Missing required configuration key \"POSTGRESQL_DSN\"")
+
+        key = os.getenv("API_KEY", data.get("API_KEY", None))
+        if not key:
+            raise Exception("Missing required configuration key \"API_KEY\"")
+
+        self.keys = [key]

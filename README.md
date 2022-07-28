@@ -7,3 +7,4 @@ API for Lightning v4
 You can either use the `config.json.example` file or environment variables to configure the API.
 
 - `POSTGRESQL_DSN` (Your PostgreSQL connection string)
+- `API_KEY` (The admin api key)

@@ -1,15 +1,16 @@
 import asyncpg
 import orjson
-from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, ORJSONResponse
 
+from .app import API, Request
 from .config import Config
 from .errors import NotFound
 from .routers import setup_routers
+from .security import requires_api_key
 
-app = FastAPI(title="Sanctum",
-              version="1.0.0+v4",  # API version + bot version
-              redoc_url=None, docs_url="/docs2")
+app = API(title="Sanctum",
+          version="1.0.0+v4",  # API version + bot version
+          redoc_url=None, docs_url="/docs2")
 setup_routers(app)
 
 
@@ -37,12 +38,12 @@ async def on_shutdown():
     await app.pool.close()
 
 
-@app.get("/docs", include_in_schema=False)
+@app.get("/docs", include_in_schema=False, dependencies=None)
 async def docs():
-    html = f"""<!doctype html> <!-- Important: must specify -->
+    html = f"""<!doctype html>
 <html>
   <head>
-    <meta charset="utf-8"> <!-- Important: rapi-doc uses utf8 characters -->
+    <meta charset="utf-8">
     <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
   </head>
   <body>

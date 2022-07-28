@@ -5,8 +5,9 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, validator
 
 from ..errors import NotFound
+from ..security import requires_api_key
 
-router = APIRouter()
+router = APIRouter(dependencies=requires_api_key)
 
 
 class TimerPayload(BaseModel):

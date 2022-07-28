@@ -2,10 +2,10 @@ from typing import Optional
 
 from fastapi import APIRouter, Request
 
-from sanctum.errors import NotFound
+from ..errors import NotFound
+from ..security import requires_api_key
 
-
-router = APIRouter(prefix="/guilds")
+router = APIRouter(prefix="/guilds", dependencies=requires_api_key)
 
 
 @router.get("/{guild_id}/config")

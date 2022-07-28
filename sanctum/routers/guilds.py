@@ -5,6 +5,7 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, validator
 
 from ..errors import NotFound
+from ..security import requires_api_key
 
 
 class GuildPayload(BaseModel):
@@ -23,7 +24,7 @@ class Guild(GuildPayload):
     id: int
 
 
-router = APIRouter(prefix="/guilds")
+router = APIRouter(prefix="/guilds", dependencies=requires_api_key)
 
 
 @router.get("/{guild_id}", response_model=Guild)

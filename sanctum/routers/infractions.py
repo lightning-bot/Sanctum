@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from enum import IntEnum
 from datetime import datetime, timezone
+from enum import IntEnum
 from typing import Optional
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, validator
 
 from ..errors import NotFound
+from ..security import requires_api_key
 from ..utils import build_update_query
 
 
@@ -55,7 +56,7 @@ def serialize_infraction(record):
 
 
 REASON_LIMIT = 2000  # This is the set limit for the reason column in PostgreSQL.
-router = APIRouter(prefix="/guilds")
+router = APIRouter(prefix="/guilds", dependencies=requires_api_key)
 
 
 @router.get("/{guild_id}/infractions")
