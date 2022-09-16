@@ -88,7 +88,6 @@ async def get_user_reminders(user_id: int, request: Request, limit: int = 10):
     """
     Gets a users reminders.
     """
-    qlimit = max(10, 25)
     query = """SELECT *
                FROM timers
                WHERE event = 'reminder'
@@ -103,6 +102,56 @@ async def get_user_reminders(user_id: int, request: Request, limit: int = 10):
         raise NotFound(message=f"{user_id}'s reminders were not found!")
 
     return list(map(Timer.from_record, records))
+
+
+@router.get("/users/{user_id}/reminders/{reminder_id}", response_model=Timer)
+async def get_user_reminder(user_id: int, reminder_id: int, request: Request):
+    """
+    Gets a user's reminder by ID.
+    """
+    query = """SELECT *
+               FROM timers
+               WHERE event = 'reminder'
+               AND id = $1
+               AND extra ->> 'author' = $2
+            """
+
+    record = await request.app.pool.fetchrow(query, reminder_id, str(user_id))
+
+    if not record:
+        raise NotFound(message=f"A reminder with the ID {reminder_id} could not be found belonging to {user_id}")
+
+    return Timer.from_record(record)
+
+
+class PatchableUserReminder(BaseModel):
+    reminder_text: Optional[str]
+    expiry: Optional[datetime]
+
+    @validator('expiry')
+    def dt_validator(cls, value):
+        return value.replace(tzinfo=None)
+
+
+@router.patch("/users/{user_id}/reminders/{reminder_id}")
+async def edit_user_reminder(user_id: int, reminder_id: int, patch: PatchableUserReminder, request: Request):
+    """Edits a user's reminder"""
+    if patch.reminder_text:
+        query = """UPDATE timers
+                   SET extra = jsonb_set(extra, '{reminder_text}', $1)
+                   WHERE id=$2
+                   AND event = 'reminder'
+                   AND extra ->> 'author' = $3;"""
+        resp = await request.app.pool.execute(query, patch.reminder_text, reminder_id, str(user_id))
+        if resp == "UPDATE 0":
+            raise NotFound(message=f"Unable to find a reminder belonging to {user_id} with ID {reminder_id}")
+
+    if patch.expiry:
+        query = "UPDATE timers SET expiry=$1 WHERE event = 'reminder' AND id=$2;"
+        resp = await request.app.pool.execute(query, patch.expiry, reminder_id)
+        if resp == "UPDATE 0":
+            raise NotFound(message=f"Unable to find a reminder belonging to {user_id} with ID {reminder_id}")
+
 
 @router.delete("/users/{user_id}/reminders/{reminder_id}")
 async def delete_user_reminder(user_id: int, reminder_id: int, request: Request):
