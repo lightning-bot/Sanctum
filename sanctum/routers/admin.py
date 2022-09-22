@@ -6,8 +6,8 @@ import httpx
 import privatebinapi
 from fastapi import APIRouter
 from pydantic import BaseModel
-from sanctum.config import Config
 
+from sanctum.config import Config
 from sanctum.errors import NotFound
 from sanctum.security import requires_api_key
 
