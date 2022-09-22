@@ -20,3 +20,5 @@ class Config:
             raise Exception("Missing required configuration key \"API_KEY\"")
 
         self.keys = [key]
+
+        self.shlink_key = os.getenv("SHLINK_KEY", data.get("SHLINK_KEY", None))

@@ -6,7 +6,6 @@ from .app import API, Request
 from .config import Config
 from .errors import NotFound
 from .routers import setup_routers
-from .security import requires_api_key
 
 app = API(title="Sanctum",
           version="1.0.0+v4",  # API version + bot version
