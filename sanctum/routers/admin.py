@@ -7,11 +7,10 @@ import privatebinapi
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from sanctum.config import Config
-from sanctum.errors import NotFound
-from sanctum.security import requires_api_key
-
 from ..app import Request
+from ..config import Config
+from ..errors import NotFound
+from ..security import requires_api_key
 
 
 class _Router(APIRouter):

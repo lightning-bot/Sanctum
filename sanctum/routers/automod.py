@@ -6,10 +6,9 @@ import asyncpg
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from sanctum.errors import NotFound
-from sanctum.security import requires_api_key
-
 from ..app import Request
+from ..errors import NotFound
+from ..security import requires_api_key
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -17,7 +16,12 @@ if TYPE_CHECKING:
 router = APIRouter(prefix="/guilds", dependencies=requires_api_key)
 
 
-@router.get("/{guild_id}/automod")
+class AutoModConfigResponse(TypedDict):
+    guild_id: int
+    default_ignores: List[int]
+
+
+@router.get("/{guild_id}/automod", response_model=AutoModConfigResponse)
 async def get_automod_config(guild_id: int, request: Request):
     """Gets the base automod config"""
     query = "SELECT * FROM guild_automod_config WHERE guild_id=$1;"
