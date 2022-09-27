@@ -100,14 +100,16 @@ class AddAutoModRuleResponse(TypedDict):
 
 @router.put("/{guild_id}/automod/rules", response_model=AddAutoModRuleResponse)
 async def add_new_automod_rules(guild_id: int, event: AutoModEventModel, request: Request):
-    query = """INSERT INTO guild_automod_rules (guild_id, type, count, seconds, ignores)
-               VALUES ($1, $2, $3, $4, $5)
-               RETURNING id;"""
-    rnum = await request.app.pool.fetchval(query, guild_id, event.type, event.count, event.seconds, event.ignores)
-    query = """INSERT INTO guild_automod_punishment (id, type, duration)
-               VALUES ($1, $2, $3);"""
-    await request.app.pool.execute(query, rnum, event.punishment.type,
-                                   event.punishment.duration)
+    async with request.app.pool.acquire() as conn:
+        async with conn.transaction():
+            query = """INSERT INTO guild_automod_rules (guild_id, type, count, seconds, ignores)
+                       VALUES ($1, $2, $3, $4, $5)
+                       RETURNING id;"""
+            rnum = await conn.fetchval(query, guild_id, event.type, event.count, event.seconds, event.ignores)
+            query = """INSERT INTO guild_automod_punishment (id, type, duration)
+                       VALUES ($1, $2, $3);"""
+            await conn.execute(query, rnum, event.punishment.type,
+                               event.punishment.duration)
 
     return {"id": rnum}
 
