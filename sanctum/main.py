@@ -1,5 +1,6 @@
 import asyncpg
 import orjson
+from fastapi.exceptions import HTTPException
 from fastapi.responses import HTMLResponse, ORJSONResponse
 
 from .app import API, Request
@@ -16,6 +17,11 @@ setup_routers(app)
 @app.exception_handler(NotFound)
 async def not_found_exception_handler(request: Request, exc: NotFound):
     return ORJSONResponse(status_code=404, content={"message": f"{exc.thing} was not found!" if exc.thing else exc.message})
+
+
+@app.exception_handler(409)
+async def conflict_exc_handler(request: Request, exc: HTTPException):
+    return ORJSONResponse(status_code=409, content={"message": exc.detail})
 
 
 def encode_json(data):

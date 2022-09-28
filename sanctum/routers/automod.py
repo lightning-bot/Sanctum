@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, TypedDict
+from typing import TYPE_CHECKING, List, Literal, Optional, TypedDict
 
 import asyncpg
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..app import Request
@@ -56,7 +56,7 @@ class AutoModPunishmentModel(BaseModel):
 
 class AutoModEventModel(BaseModel):
     guild_id: int
-    type: str
+    type: Literal['message-spam', 'mass-mentions', 'url-spam', 'invite-spam', 'message-content-spam']
     count: int
     seconds: int
     ignores: Optional[List[int]] = []
@@ -99,8 +99,13 @@ class AddAutoModRuleResponse(TypedDict):
 
 
 @router.put("/{guild_id}/automod/rules", response_model=AddAutoModRuleResponse)
-async def add_new_automod_rules(guild_id: int, event: AutoModEventModel, request: Request):
+async def add_new_automod_rule(guild_id: int, event: AutoModEventModel, request: Request):
     async with request.app.pool.acquire() as conn:
+        query = "SELECT * FROM guild_automod_rules WHERE guild_id=$1 AND type=$2 LIMIT 1;"
+        r = await conn.fetchrow(query, guild_id, event.type)
+        if r:
+            raise HTTPException(409, "Rule already exists")
+
         async with conn.transaction():
             query = """INSERT INTO guild_automod_rules (guild_id, type, count, seconds, ignores)
                        VALUES ($1, $2, $3, $4, $5)
