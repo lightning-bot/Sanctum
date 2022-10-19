@@ -39,6 +39,11 @@ class AutoModDefaultIgnoresResponse(TypedDict):
 @router.put("/{guild_id}/automod/ignores", response_model=AutoModDefaultIgnoresResponse)
 async def put_automod_default_ignores(guild_id: int, request: Request, ignores: List[int] = []):
     """Puts new automod default ignores"""
+    if not ignores:
+        query = "UPDATE guild_automod_config SET default_ignores=$2 WHERE guild_id=$1;"
+        await request.app.pool.execute(query, [])
+        return {"default_ignores": []}
+
     query = """INSERT INTO guild_automod_config (guild_id, default_ignores)
                VALUES ($1, $2)
                ON CONFLICT (guild_id) DO UPDATE SET
@@ -50,7 +55,7 @@ async def put_automod_default_ignores(guild_id: int, request: Request, ignores: 
 
 # Rules...
 class AutoModPunishmentModel(BaseModel):
-    duration: Optional[int]
+    duration: Optional[int]  # This should be seconds
     type: Literal['DELETE', 'WARN', 'MUTE', 'KICK', 'BAN']
 
 
