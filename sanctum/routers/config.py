@@ -47,3 +47,13 @@ async def put_guild_prefixes(guild_id: int, request: Request, prefixes: Optional
             """
     await request.app.pool.execute(query, guild_id, list(prefixes))
     return {}
+
+
+@router.get("/{guild_id}/config/moderation")
+async def get_guild_mod_config(guild_id: int, request: Request):
+    query = "SELECT * FROM guild_mod_config WHERE guild_id=$1;"
+    record = await request.app.pool.fetchrow(query, guild_id)
+    if not record:
+        raise NotFound("Guild moderation config")
+
+    return dict(record)
