@@ -24,8 +24,8 @@ class MessageReport(BaseModel):
 
 
 class PatchableMessageReport(BaseModel):
-    dismissed: Optional[bool]
-    actioned: Optional[bool]
+    dismissed: Optional[bool] = None
+    actioned: Optional[bool] = None
 
 
 def serialize_reporter(record):
@@ -100,11 +100,11 @@ async def edit_guild_message_report(guild_id: int, message_id: int,
     columns = []
     data = []
 
-    if report.actioned:
+    if report.actioned is not None:
         columns.append("actioned")
         data.append(report.actioned)
 
-    if report.dismissed:
+    if report.dismissed is not None:
         columns.append("dismissed")
         data.append(report.dismissed)
 
@@ -116,7 +116,7 @@ async def edit_guild_message_report(guild_id: int, message_id: int,
     query = f"""UPDATE message_reports
                 SET {update_query}
                 WHERE guild_id=${idx + 1} AND message_id=${idx + 2}
-                RETURNING id, guild_id, message_id, channel_id, created_at, report_message_id, dismissed, actioned"""
+                RETURNING id, guild_id, message_id, channel_id, report_message_id, dismissed, actioned"""
     resp = await request.app.pool.fetchrow(query, *data, guild_id, message_id)
 
     if resp is None:
