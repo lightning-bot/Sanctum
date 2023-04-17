@@ -74,12 +74,13 @@ async def put_guild_message_reporter(guild_id: int, message_id: int,
     query = """INSERT INTO message_reporters (guild_id, message_id, author_id, reason, original)
                VALUES ($1, $2, $3, $4, $5)
                ON CONFLICT (message_id, author_id)
-               DO UPDATE SET reason = EXCLUDED.reason;"""
+               DO UPDATE SET reason = EXCLUDED.reason
+               RETURNING guild_id, message_id, author_id, reason, original, reported_at;"""
     record = await request.app.pool.fetchrow(query, guild_id, message_id,
                                              payload.author_id, payload.reason,
                                              payload.original)
 
-    return dict(record)
+    return serialize_reporter(record)
 
 
 @router.get("/{guild_id}/reports/{message_id}/reporters")
