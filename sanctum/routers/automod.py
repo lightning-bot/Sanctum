@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, List, Literal, Optional, TypedDict
 
 import asyncpg
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator
 
 from ..app import Request
 from ..errors import NotFound
@@ -61,11 +61,19 @@ class AutoModPunishmentModel(BaseModel):
 
 class AutoModEventModel(BaseModel):
     guild_id: int
-    type: Literal['message-spam', 'mass-mentions', 'url-spam', 'invite-spam', 'message-content-spam']
+    type: Literal['message-spam', 'mass-mentions', 'url-spam', 'invite-spam',
+                  'message-content-spam', 'auto-dehoist', 'auto-normalize']
     count: int
     seconds: int
     ignores: Optional[List[int]] = []
-    punishment: AutoModPunishmentModel
+    punishment: Optional[AutoModPunishmentModel]
+
+    @root_validator
+    def check_punishment(cls, values):
+        _type, punishment = values.get("type"), values.get('punishment')
+        if _type not in ("auto-dehoist", "auto-normalize") and punishment is None:
+            raise ValueError(f'{_type} requires a punishment')
+        return values
 
     class Config:
         schema_extra = {
@@ -90,7 +98,7 @@ class AutoModEventDBModel(AutoModEventModel):
 async def get_guild_automod_rules(guild_id: int, request: Request) -> List[AutoModEventDBModel]:
     """Gets a guild's automod rule configuration"""
     query = """SELECT events.*, punishment.duration AS punishment_duration, punishment.type AS punishment_type FROM guild_automod_rules events
-               INNER JOIN guild_automod_punishment AS punishment ON events.id = punishment.id
+               LEFT OUTER JOIN guild_automod_punishment AS punishment ON events.id = punishment.id
                WHERE events.guild_id=$1;"""
     records = await request.app.pool.fetch(query, guild_id)
     if not records:
@@ -116,10 +124,12 @@ async def add_new_automod_rule(guild_id: int, event: AutoModEventModel, request:
                        VALUES ($1, $2, $3, $4, $5)
                        RETURNING id;"""
             rnum = await conn.fetchval(query, guild_id, event.type, event.count, event.seconds, event.ignores)
-            query = """INSERT INTO guild_automod_punishment (id, type, duration)
-                       VALUES ($1, $2, $3);"""
-            await conn.execute(query, rnum, event.punishment.type,
-                               event.punishment.duration)
+
+            if event.punishment:
+                query = """INSERT INTO guild_automod_punishment (id, type, duration)
+                           VALUES ($1, $2, $3);"""
+                await conn.execute(query, rnum, event.punishment.type,
+                                   event.punishment.duration)
 
     return {"id": rnum}
 
