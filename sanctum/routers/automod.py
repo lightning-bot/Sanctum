@@ -41,7 +41,7 @@ async def put_automod_default_ignores(guild_id: int, request: Request, ignores: 
     """Puts new automod default ignores"""
     if not ignores:
         query = "UPDATE guild_automod_config SET default_ignores=$2 WHERE guild_id=$1;"
-        await request.app.pool.execute(query, [])
+        await request.app.pool.execute(query, guild_id, [])
         return {"default_ignores": []}
 
     query = """INSERT INTO guild_automod_config (guild_id, default_ignores)
