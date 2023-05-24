@@ -88,16 +88,13 @@ class AutoModEventDBModel(AutoModEventModel):
     @classmethod
     def from_record(cls, record: asyncpg.Record) -> Self:
         record = dict(record)
-        if record['punishment_type'] is not None:
-            record['punishment'] = {"duration": record.pop('punishment_duration'), "type": record.pop("punishment_type")}
-
         return cls.parse_obj(record)
 
 
 @router.get("/{guild_id}/automod/rules", response_model=List[AutoModEventDBModel])
 async def get_guild_automod_rules(guild_id: int, request: Request) -> List[AutoModEventDBModel]:
     """Gets a guild's automod rule configuration"""
-    query = """SELECT events.*, punishment.duration AS punishment_duration, punishment.type AS punishment_type FROM guild_automod_rules events
+    query = """SELECT events.*, COALESCE(to_jsonb(punishment) - 'id', '{}'::jsonb) AS punishment FROM guild_automod_rules events
                LEFT OUTER JOIN guild_automod_punishment AS punishment ON events.id = punishment.id
                WHERE events.guild_id=$1;"""
     records = await request.app.pool.fetch(query, guild_id)
