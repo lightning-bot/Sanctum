@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, List, Literal, Optional, TypedDict
 
 import asyncpg
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, root_validator, validator
 
 from ..app import Request
 from ..errors import NotFound
@@ -16,44 +16,7 @@ if TYPE_CHECKING:
 router = APIRouter(prefix="/guilds", dependencies=requires_api_key)
 
 
-class AutoModConfigResponse(TypedDict):
-    guild_id: int
-    default_ignores: List[int]
-
-
-@router.get("/{guild_id}/automod", response_model=AutoModConfigResponse)
-async def get_automod_config(guild_id: int, request: Request):
-    """Gets the base automod config"""
-    query = "SELECT * FROM guild_automod_config WHERE guild_id=$1;"
-    record = await request.app.pool.fetchrow(query, guild_id)
-    if not record:
-        raise NotFound("Guild automod config")
-
-    return record
-
-
-class AutoModDefaultIgnoresResponse(TypedDict):
-    default_ignores: List[int]
-
-
-@router.put("/{guild_id}/automod/ignores", response_model=AutoModDefaultIgnoresResponse)
-async def put_automod_default_ignores(guild_id: int, request: Request, ignores: List[int] = []):
-    """Puts new automod default ignores"""
-    if not ignores:
-        query = "UPDATE guild_automod_config SET default_ignores=$2 WHERE guild_id=$1;"
-        await request.app.pool.execute(query, guild_id, [])
-        return {"default_ignores": []}
-
-    query = """INSERT INTO guild_automod_config (guild_id, default_ignores)
-               VALUES ($1, $2)
-               ON CONFLICT (guild_id) DO UPDATE SET
-                  default_ignores = EXCLUDED.default_ignores
-               RETURNING default_ignores;"""
-    resp = await request.app.pool.fetchval(query, guild_id, ignores)
-    return {"default_ignores": resp}
-
-
-# Rules...
+# Models
 class AutoModPunishmentModel(BaseModel):
     duration: Optional[int]  # This should be seconds
     type: Literal['DELETE', 'WARN', 'MUTE', 'KICK', 'BAN']
@@ -80,6 +43,62 @@ class AutoModEventModel(BaseModel):
             "example": {'guild_id': 540978015811928075, 'type': 'message-content-spam',
                         'count': 6, 'seconds': 11, 'ignores': [], 'punishment': {'type': 'BAN'}}
         }
+
+
+class AutoModConfigResponse(BaseModel):
+    guild_id: int
+    default_ignores: List[int] = []
+    warn_threshold: Optional[int] = None
+    warn_punishment: Optional[Literal['KICK', 'BAN']] = None
+    rules: List[AutoModEventModel] = []
+
+    @validator('default_ignores', pre=True)
+    def convert_to_default(cls, v):
+        return v or []
+
+
+@router.get("/{guild_id}/automod", response_model=AutoModConfigResponse)
+async def get_automod_config(guild_id: int, request: Request):
+    """Gets the guild's automod config and rules"""
+    query = """
+            SELECT config.*, COALESCE(json_agg(json_build_object('guild_id', rules.guild_id,
+													 'type', rules.type,
+													 'count', rules.count,
+													 'seconds', rules.seconds,
+													 'ignores', rules.ignores,
+													 'punishment', punishment.*))
+            FILTER (WHERE rules.guild_id IS NOT NULL), '[]'::json) AS rules FROM guild_automod_config AS config
+            LEFT OUTER JOIN guild_automod_rules AS rules ON config.guild_id = rules.guild_id
+            LEFT OUTER JOIN guild_automod_punishment AS punishment ON rules.id = punishment.id
+            WHERE config.guild_id=$1
+            GROUP BY config.guild_id;
+            """
+    record = await request.app.pool.fetchrow(query, guild_id)
+    if not record:
+        raise NotFound("Guild automod config")
+
+    return record
+
+
+class AutoModDefaultIgnoresResponse(TypedDict):
+    default_ignores: List[int]
+
+
+@router.put("/{guild_id}/automod/ignores", response_model=AutoModDefaultIgnoresResponse)
+async def put_automod_default_ignores(guild_id: int, request: Request, ignores: List[int] = []):
+    """Puts new automod default ignores"""
+    if not ignores:
+        query = "UPDATE guild_automod_config SET default_ignores=$2 WHERE guild_id=$1;"
+        await request.app.pool.execute(query, guild_id, [])
+        return {"default_ignores": []}
+
+    query = """INSERT INTO guild_automod_config (guild_id, default_ignores)
+               VALUES ($1, $2)
+               ON CONFLICT (guild_id) DO UPDATE SET
+                  default_ignores = EXCLUDED.default_ignores
+               RETURNING default_ignores;"""
+    resp = await request.app.pool.fetchval(query, guild_id, ignores)
+    return {"default_ignores": resp}
 
 
 class AutoModEventDBModel(AutoModEventModel):
