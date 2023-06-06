@@ -14,6 +14,7 @@ class TimerPayload(BaseModel):
     event: str
     created: datetime
     expiry: Optional[datetime]
+    timezone: str
     extra: Optional[dict]
 
     @validator('created', 'expiry')
@@ -26,6 +27,7 @@ class Timer(BaseModel):
     event: str
     created: datetime
     expiry: Optional[datetime]
+    timezone: str
     extra: Optional[dict]
 
     @validator('created', 'expiry', pre=True)
@@ -54,24 +56,24 @@ async def get_timer(id: int, request: Request):
     return Timer.from_record(record)
 
 
-@router.put("/timers", response_model=Dict[str, int])
+@router.put("/timers", response_model=Timer)
 async def create_new_timer(payload: TimerPayload, request: Request):
     """Creates a new timer.
     Returns a json object with the id only."""
     if payload.extra:
-        query = """INSERT INTO timers (event, created, expiry, extra)
-                   VALUES ($1, $2, $3, $4::jsonb)
-                   RETURNING id;"""
-        args = [payload.event, payload.created, payload.expiry, payload.extra]
+        query = """INSERT INTO timers (event, created, expiry, timezone, extra)
+                   VALUES ($1, $2, $3, $4, $5::jsonb)
+                   RETURNING *;"""
+        args = [payload.event, payload.created, payload.expiry, payload.timezone, payload.extra]
     else:
-        query = """INSERT INTO timers (event, created, expiry)
-                   VALUES ($1, $2, $3)
-                   RETURNING id;"""
-        args = [payload.event, payload.created, payload.expiry]
+        query = """INSERT INTO timers (event, created, expiry, timezone)
+                   VALUES ($1, $2, $3, $4)
+                   RETURNING *;"""
+        args = [payload.event, payload.created, payload.expiry, payload.timezone]
 
-    _id = await request.app.pool.fetchval(query, *args)
+    record = await request.app.pool.fetchrow(query, *args)
 
-    return {"id": _id}
+    return Timer.from_record(record)
 
 
 @router.delete("/timers/{id}")
