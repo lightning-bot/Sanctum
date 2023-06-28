@@ -166,7 +166,7 @@ async def patch_guild_infraction(guild_id: int, inf_id: int, inf: PatchableInfra
     query = f"""UPDATE infractions
                 SET {update_query}
                 WHERE guild_id=${idx + 1} AND id=${idx + 2}
-                RETURNING id, moderator_id, reason, user_id, created_at, active, extra"""
+                RETURNING *"""
     resp = await request.app.pool.fetchrow(query, *data, guild_id, inf_id)
 
     if resp is None:
