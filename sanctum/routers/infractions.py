@@ -62,7 +62,8 @@ router = APIRouter(prefix="/guilds", dependencies=requires_api_key)
 @router.get("/{guild_id}/infractions")
 async def get_guild_infractions(guild_id: int, request: Request):
     query = """SELECT * FROM infractions
-               WHERE guild_id=$1;
+               WHERE guild_id=$1
+               ORDER BY id ASC;
             """
     record = await request.app.pool.fetch(query, guild_id)
     if not record:
@@ -118,7 +119,8 @@ async def get_guild_user_infractions(guild_id: int, member_id: int, request: Req
     # A guild user could be a member (the user is still in the guild) or a user (previous member of the guild)
     query = """SELECT * FROM infractions
                WHERE guild_id=$1
-               AND user_id=$2;
+               AND user_id=$2
+               ORDER BY id ASC;
             """
     records = await request.app.pool.fetch(query, guild_id, member_id)
     if not records:
