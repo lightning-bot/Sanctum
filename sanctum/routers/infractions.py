@@ -22,6 +22,8 @@ class InfractionType(IntEnum):
     UNMUTE = 7
     TIMEMUTE = 8
     TEMPROLE = 9
+    TIMEOUT = 10
+    UNTIMEOUT = 11
 
 
 class Infraction(BaseModel):
@@ -116,7 +118,7 @@ async def delete_guild_user_infractions(guild_id: int, user_id: int, request: Re
 @router.get("/{guild_id}/users/{member_id}/infractions")
 async def get_guild_user_infractions(guild_id: int, member_id: int,
                                      request: Request,
-                                     action: Union[int, None] = None):
+                                     action: Union[InfractionType, None] = None):
     """Gets infractions for a guild user."""
     # A guild user could be a member (the user is still in the guild) or a user (previous member of the guild)
     if action is not None:
