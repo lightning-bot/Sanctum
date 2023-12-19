@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import IntEnum
-from typing import Optional
+from typing import Optional, Union
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, validator
@@ -114,15 +114,28 @@ async def delete_guild_user_infractions(guild_id: int, user_id: int, request: Re
 
 
 @router.get("/{guild_id}/users/{member_id}/infractions")
-async def get_guild_user_infractions(guild_id: int, member_id: int, request: Request):
+async def get_guild_user_infractions(guild_id: int, member_id: int,
+                                     request: Request,
+                                     action: Union[int, None] = None):
     """Gets infractions for a guild user."""
     # A guild user could be a member (the user is still in the guild) or a user (previous member of the guild)
-    query = """SELECT * FROM infractions
-               WHERE guild_id=$1
-               AND user_id=$2
-               ORDER BY id ASC;
-            """
-    records = await request.app.pool.fetch(query, guild_id, member_id)
+    if action is not None:
+        query = """SELECT * FROM infractions
+                   WHERE guild_id=$1
+                   AND user_id=$2
+                   AND action=$3
+                   ORDER BY id ASC;
+                """
+        args = (guild_id, member_id, action)
+    else:
+        query = """SELECT * FROM infractions
+                   WHERE guild_id=$1
+                   AND user_id=$2
+                   ORDER BY id ASC;
+                """
+        args = (guild_id, member_id)
+
+    records = await request.app.pool.fetch(query, *args)
     if not records:
         raise NotFound("Guild member infractions")
 
