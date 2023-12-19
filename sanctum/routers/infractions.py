@@ -62,12 +62,21 @@ router = APIRouter(prefix="/guilds", dependencies=requires_api_key)
 
 
 @router.get("/{guild_id}/infractions")
-async def get_guild_infractions(guild_id: int, request: Request):
-    query = """SELECT * FROM infractions
-               WHERE guild_id=$1
-               ORDER BY id ASC;
-            """
-    record = await request.app.pool.fetch(query, guild_id)
+async def get_guild_infractions(guild_id: int, request: Request,
+                                action: Optional[InfractionType] = None):
+    if action is not None:
+        query = """SELECT * FROM infractions
+                   WHERE guild_id=$1 AND action=$2
+                   ORDER BY id ASC;"""
+        args = (guild_id, action)
+    else:
+        query = """SELECT * FROM infractions
+                   WHERE guild_id=$1
+                   ORDER BY id ASC;
+                """
+        args = (guild_id, )
+
+    record = await request.app.pool.fetch(query, *args)
     if not record:
         raise NotFound("Guild infractions")
 
