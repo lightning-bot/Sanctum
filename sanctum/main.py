@@ -1,4 +1,5 @@
 import asyncpg
+import asyncio
 import orjson
 from fastapi.exceptions import HTTPException
 from fastapi.responses import HTMLResponse, ORJSONResponse
@@ -35,7 +36,13 @@ async def on_startup():
     async def init(connection: asyncpg.Connection):
         await connection.set_type_codec('json', encoder=encode_json, decoder=orjson.loads, schema='pg_catalog')
         await connection.set_type_codec('jsonb', encoder=encode_json, decoder=orjson.loads, schema='pg_catalog')
-    app.pool = await asyncpg.create_pool(config.postgres, init=init)
+
+    try:
+        app.pool = await asyncpg.create_pool(config.postgres, init=init)
+    except Exception as e:
+        print(e)
+        loop = asyncio.get_running_loop()
+        loop.stop()
 
 
 @app.on_event("shutdown")
