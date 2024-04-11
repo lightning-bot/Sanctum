@@ -47,7 +47,10 @@ async def on_startup():
 
 @app.on_event("shutdown")
 async def on_shutdown():
-    await app.pool.close()
+    try:
+        await app.pool.close()
+    except AttributeError:
+        pass
 
 
 @app.get("/docs", include_in_schema=False, dependencies=None)
