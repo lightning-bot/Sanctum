@@ -32,7 +32,7 @@ async def get_guild_prefixes(guild_id: int, request: Request):
     return record
 
 
-@router.put("/{guild_id}/prefixes")
+@router.put("/{guild_id}/prefixes", deprecated=True)
 async def put_guild_prefixes(guild_id: int, prefixes: Optional[list], request: Request):
     """Upserts new prefixes"""
     if not prefixes:
