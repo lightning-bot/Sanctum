@@ -33,12 +33,12 @@ async def get_guild_prefixes(guild_id: int, request: Request):
 
 
 @router.put("/{guild_id}/prefixes")
-async def put_guild_prefixes(guild_id: int, request: Request, prefixes: Optional[list] = None):
+async def put_guild_prefixes(guild_id: int, prefixes: Optional[list], request: Request):
     """Upserts new prefixes"""
     if not prefixes:
         query = "UPDATE guild_config SET prefixes = NULL WHERE guild_id=$1;"
         await request.app.pool.execute(query, guild_id)
-        return {}
+        return {"prefixes": []}
 
     query = """INSERT INTO guild_config (guild_id, prefixes)
                VALUES ($1, $2::text[]) ON CONFLICT (guild_id)
@@ -46,7 +46,7 @@ async def put_guild_prefixes(guild_id: int, request: Request, prefixes: Optional
                    prefixes = EXCLUDED.prefixes;
             """
     await request.app.pool.execute(query, guild_id, list(prefixes))
-    return {}
+    return {"prefixes": list(prefixes)}
 
 
 @router.get("/{guild_id}/config/moderation")
