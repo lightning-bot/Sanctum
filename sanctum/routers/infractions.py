@@ -187,6 +187,10 @@ async def patch_guild_infraction(guild_id: int, inf_id: int, inf: PatchableInfra
         columns.append("moderator_id")
         data.append(inf.moderator_id)
 
+    if inf.active is not None:
+        columns.append("active")
+        data.append(inf.active)
+
     idx, update_query = build_update_query(columns)
 
     query = f"""UPDATE infractions
