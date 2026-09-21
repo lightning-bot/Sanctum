@@ -52,7 +52,7 @@ async def create_shortened_link(link: str) -> str:
 @router.put("/paste", response_model=PasteResponse)
 async def create_paste(payload: PasteBinPayload, request: Request):
     """Creates a paste with given text"""
-    resp = await privatebinapi.send_async("https://paste.lightsage.dev/",
+    resp = await privatebinapi.send_async("https://paste.celveren.dev/",
                                           text=payload.text,
                                           formatting="syntaxhighlighting",
                                           expiration="1month")
