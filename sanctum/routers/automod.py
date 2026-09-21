@@ -62,11 +62,11 @@ async def get_automod_config(guild_id: int, request: Request):
     """Gets the guild's automod config and rules"""
     query = """
             SELECT config.*, COALESCE(json_agg(json_build_object('guild_id', rules.guild_id,
-													 'type', rules.type,
-													 'count', rules.count,
-													 'seconds', rules.seconds,
-													 'ignores', rules.ignores,
-													 'punishment', punishment.*))
+                                                     'type', rules.type,
+                                                     'count', rules.count,
+                                                     'seconds', rules.seconds,
+                                                     'ignores', rules.ignores,
+                                                     'punishment', punishment.*))
             FILTER (WHERE rules.guild_id IS NOT NULL), '[]'::json) AS rules FROM guild_automod_config AS config
             LEFT OUTER JOIN guild_automod_rules AS rules ON config.guild_id = rules.guild_id
             LEFT OUTER JOIN guild_automod_punishment AS punishment ON rules.id = punishment.id
