@@ -52,13 +52,14 @@ async def get_guild_message_report(guild_id: int, message_id: int,
 @router.put("/{guild_id}/reports")
 async def create_guild_message_report(guild_id: int, payload: MessageReport,
                                       request: Request):
-    query = """INSERT INTO message_reports (guild_id, message_id, channel_id, report_message_id)
-               VALUES ($1, $2, $3, $4)
+    query = """INSERT INTO message_reports (guild_id, message_id, channel_id, report_message_id, reported_user_id)
+               VALUES ($1, $2, $3, $4, $5)
                RETURNING id;"""
     record = await request.app.pool.fetchrow(query, guild_id,
                                              payload.message_id,
                                              payload.channel_id,
-                                             payload.report_message_id)
+                                             payload.report_message_id,
+                                             payload.reported_user_id)
 
     query = """INSERT INTO message_reporters (guild_id, message_id, author_id, reason, original)
                VALUES ($1, $2, $3, $4, $5);"""
