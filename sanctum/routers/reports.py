@@ -20,6 +20,7 @@ class MessageReport(BaseModel):
     channel_id: int
     message_id: int
     report_message_id: int
+    reported_user_id: int
     reporter: MessageReporter
 
 
